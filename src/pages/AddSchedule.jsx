@@ -200,7 +200,7 @@ export default function AddSchedule() {
                   type="submit"
                   className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
                 >
-                  Lanjut ke Pratinjau
+                  Lanjut ke Pratinjauu
                 </button>
               </div>
 
