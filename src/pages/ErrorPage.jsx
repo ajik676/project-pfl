@@ -56,10 +56,10 @@ export default function ErrorPage({
 
         {/* BUTTON */}
         <Link
-          to="/"
-          className="inline-flex items-center gap-2 mt-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-md shadow-blue-500/20 transition active:scale-95"
+          to={localStorage.getItem("user") ? "/dashboard" : "/"}
+          className="inline-flex items-center gap-2 mt-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-md shadow-blue-500/20 transition active:scale-95 text-xs font-bold uppercase"
         >
-          ← Kembali ke Dashboard
+          {localStorage.getItem("user") ? "← Kembali ke Dashboard" : "← Kembali ke Beranda"}
         </Link>
 
       </div>

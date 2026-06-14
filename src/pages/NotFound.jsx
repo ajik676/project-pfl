@@ -31,11 +31,11 @@ export default function NotFound() {
 
         {/* Tombol Kembali */}
         <Link
-          to="/"
-          className="inline-flex items-center justify-center gap-2 mt-8 bg-[#879b54] hover:bg-[#738645] text-white font-medium px-6 py-3 rounded-xl shadow-sm shadow-[#879b54]/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#879b54] transition-all duration-200 active:scale-[0.98]"
+          to={localStorage.getItem("user") ? "/dashboard" : "/"}
+          className="inline-flex items-center justify-center gap-2 mt-8 bg-[#879b54] hover:bg-[#738645] text-white font-medium px-6 py-3 rounded-xl shadow-sm shadow-[#879b54]/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#879b54] transition-all duration-200 active:scale-[0.98] text-xs font-bold uppercase"
         >
           <FiHome className="text-lg" />
-          Kembali ke Dashboard
+          {localStorage.getItem("user") ? "Kembali ke Dashboard" : "Kembali ke Beranda"}
         </Link>
         
       </div>

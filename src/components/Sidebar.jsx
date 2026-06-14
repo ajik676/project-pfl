@@ -70,9 +70,10 @@ export default function Sidebar() {
         {/* DASHBOARD GROUP */}
         <div>
           <nav className="space-y-0.5">
-            <NavItem to="/" end icon={HiOutlineViewGrid} label="Dashboard" badge="New" />
+            <NavItem to="/dashboard" end icon={HiOutlineViewGrid} label="Dashboard" badge="New" />
           </nav>
         </div>
+
 
         {/* CRM GROUP */}
         <div>

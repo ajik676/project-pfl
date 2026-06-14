@@ -44,6 +44,7 @@ const Treatments = lazy(() => import("./pages/Treatments"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Settings = lazy(() => import("./pages/Settings"));
 
+const Landing = lazy(() => import("./pages/Landing"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage"));
 
 /* Auth */
@@ -66,6 +67,9 @@ function App() {
     <Suspense fallback={<Loading />}>
       <Routes>
 
+        {/* PUBLIC LANDING */}
+        <Route path="/" element={<Landing />} />
+
         {/* AUTH */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
@@ -81,7 +85,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
 
           {/* PATIENTS */}
           <Route path="/patients" element={<Patients />} />

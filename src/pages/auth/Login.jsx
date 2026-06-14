@@ -82,7 +82,7 @@ export default function Login() {
       }
 
       localStorage.setItem("user", JSON.stringify(sessionUser));
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Username/Email atau kata sandi salah");
     } finally {
