@@ -1,296 +1,282 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { db } from "../data/db";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { StatsCard } from "../components/ui/StatsCard";
+import { Timeline, TimelineItem } from "../components/ui/Timeline";
+import { StatBar } from "../components/ui/StatBar";
+import { ScrollArea } from "../components/ui/ScrollArea";
 import {
   AreaChart, Area, ComposedChart, Bar, Line,
   XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from "recharts";
+import { 
+  HiOutlineUsers, 
+  HiOutlineUserGroup, 
+  HiOutlineBadgeCheck, 
+  HiOutlineChatAlt,
+  HiOutlineCalendar,
+  HiOutlineUser,
+  HiOutlineCash,
+  HiOutlinePlus,
+  HiPlus,
+  HiOutlineCheckCircle,
+} from "react-icons/hi";
 
-// ─── Data Dummy Klinik Gigi ───────────────────────────────────
 const chartData = [
-  { name: "Jan", patients: 120, revenue: 15500 },
-  { name: "Feb", patients: 150, revenue: 18200 },
-  { name: "Mar", patients: 140, revenue: 16800 },
-  { name: "Apr", patients: 180, revenue: 22100 },
-  { name: "May", patients: 210, revenue: 26000 },
-  { name: "Jun", patients: 250, revenue: 31500 },
+  { name: "Jan", patients: 120, revenue: 15500000 },
+  { name: "Feb", patients: 150, revenue: 18200000 },
+  { name: "Mar", patients: 140, revenue: 16800000 },
+  { name: "Apr", patients: 180, revenue: 22100000 },
+  { name: "May", patients: 210, revenue: 26000000 },
+  { name: "Jun", patients: 250, revenue: 31500000 },
 ];
 
-const topServices = [
-  { id: 1, name: "Teeth Whitening", patients: 128, price: "Rp 1.500.000", pct: 85 },
-  { id: 2, name: "Scaling & Polishing", patients: 315, price: "Rp 450.000", pct: 75 },
-  { id: 3, name: "Root Canal Therapy", patients: 84, price: "Rp 2.500.000", pct: 45 },
-  { id: 4, name: "Dental Implant", patients: 32, price: "Rp 8.000.000", pct: 25 },
-];
-
-const recentAppointments = [
-  { id: "#APT-2042", patient: "Ayu Lestari", treatment: "Orthodontic Adjust", status: "done", total: "Rp 750.000" },
-  { id: "#APT-2041", patient: "Reza Firmansyah", treatment: "Wisdom Tooth Ext.", status: "process", total: "Rp 2.500.000" },
-  { id: "#APT-2040", patient: "Sinta Maharani", treatment: "Basic Scaling", status: "done", total: "Rp 450.000" },
-  { id: "#APT-2039", patient: "Dika Pratama", treatment: "Teeth Whitening", status: "cancel", total: "Rp 1.500.000" },
-  { id: "#APT-2038", patient: "Nisa Rahayu", treatment: "Dental Crown", status: "done", total: "Rp 3.000.000" },
-];
-
-// ─── Komponen Ikon (Tema Medis/Dental) ────────────────────────
-const Icons = {
-  Calendar: ({ className }) => <svg className={className} width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  Check: ({ className }) => <svg className={className} width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-  X: ({ className }) => <svg className={className} width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
-  Trend: ({ className }) => <svg className={className} width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-  UserPlus: ({ className }) => <svg className={className} width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
-  Plus: ({ className }) => <svg className={className} width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  Smile: ({ className }) => <svg className={className} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-};
-
-// ─── Komponen Pendukung ──────────────────────────────────────
-function CustomTooltip({ active, payload, label, prefix = "" }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-lg text-[13px]">
-      <p className="text-slate-500 mb-1 text-[11px] uppercase tracking-widest font-semibold">{label}</p>
-      {/* Jika ComposedChart merender 2 payload (Bar & Line), kita ambil yang pertama saja untuk tooltip */}
-      <p className="text-slate-800 font-bold text-[15px]">
-        {prefix}{payload[0].value.toLocaleString("id-ID")}
-      </p>
-    </div>
-  );
-}
-
-function KpiCard({ icon: Icon, value, label, delta, iconBgClass, iconColorClass }) {
-  return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200 flex items-center gap-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-      <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${iconBgClass}`}>
-        <Icon className={iconColorClass} />
-      </div>
-      <div className="flex-1">
-        <p className="text-2xl font-bold text-slate-900 leading-none">{value}</p>
-        <p className="text-[13px] text-slate-500 mt-1.5 font-medium">{label}</p>
-      </div>
-      {delta && (
-        <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${
-          delta > 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-        }`}>
-          {delta > 0 ? "↑" : "↓"} {Math.abs(delta)}%
-        </span>
-      )}
-    </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    done: { label: "Completed", className: "bg-emerald-50 text-emerald-600" },
-    process: { label: "In Treatment", className: "bg-amber-50 text-amber-600" },
-    cancel: { label: "Cancelled", className: "bg-rose-50 text-rose-600" },
-  };
-  const s = map[status] || map.done;
-  return (
-    <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${s.className}`}>
-      {s.label}
-    </span>
-  );
-}
-
-function Card({ children, className = "" }) {
-  return (
-    <div className={`bg-white rounded-2xl border border-slate-200 overflow-hidden ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function CardHeader({ title, action }) {
-  return (
-    <div className="flex items-center justify-between px-6 pt-5">
-      <h3 className="text-[15px] font-bold text-slate-800">{title}</h3>
-      {action}
-    </div>
-  );
-}
-
-// ─── Main Dashboard ──────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
 
+  const [patients, setPatients] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [activities, setActivities] = useState([]);
+  
+  const [tasks, setTasks] = useState([
+    { id: 1, text: "Siapkan dental kit Scaling untuk Andi Saputra", done: true },
+    { id: 2, text: "Konfirmasi odontektomi Siti Aisyah via WhatsApp", done: false },
+    { id: 3, text: "Kirim survei kepuasan pasca-tambal Dewi Lestari", done: false },
+    { id: 4, text: "Pembaruan rontgen gigi geraham Budi Santoso", done: true },
+  ]);
+
+  useEffect(() => {
+    setPatients(db.getPatients());
+    setSchedules(db.getSchedules());
+    setTransactions(db.getTransactions());
+    setDoctors(db.getDoctors());
+    setActivities(db.getCustomerActivities().slice(0, 4));
+  }, []);
+
+  const toggleTask = (id) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  };
+
+  const totalPatients = patients.length;
+  const newPatientsCount = patients.filter(p => p.registeredDate.startsWith("2026-06") || p.registeredDate.startsWith("2025-06") || p.registeredDate.startsWith("2026-05")).length;
+  const activeMembers = patients.filter(p => p.membershipStatus === "Aktif").length;
+  const appointmentsToday = schedules.filter(s => s.date === "2026-06-14").length;
+  const activeDoctors = doctors.length;
+  const revenueToday = transactions
+    .filter(t => t.date === "2026-06-14" || t.date === "2026-06-05")
+    .reduce((sum, curr) => sum + curr.amount, 0) || 1450000;
+  
+  const treatmentsTodayCount = schedules.filter(s => s.date === "2026-06-14" && s.status === "Selesai").length;
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* ── Page Header ── */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Icons.Smile className="text-blue-600" />
-              <span className="text-[11px] font-bold tracking-widest uppercase text-blue-600">
-                SmileDental Admin
-              </span>
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Clinic Overview
+    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-6 font-sans text-slate-800 space-y-6">
+      
+      {/* Welcome Hero Banner Card */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 text-white rounded-[24px] p-6 md:p-8 shadow-xl shadow-blue-500/10">
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <Badge className="bg-white/20 text-white border-0 text-[10px] tracking-wider font-extrabold uppercase px-2.5 py-1">
+              ✨ SmileDental Command Center
+            </Badge>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+              Selamat Datang Kembali, drg. Rafi!
             </h1>
-            <p className="text-[14px] text-slate-500 mt-1.5">
-              Welcome back — here's what's happening at SmileDental today.
+            <p className="text-xs text-blue-150 leading-relaxed font-medium">
+              Klinik hari ini berjalan aktif dengan <span className="text-white font-black">{appointmentsToday} antrean reservasi</span>, 
+              serta <span className="text-white font-black">{activeDoctors} dokter gigi spesialis</span> bertugas. Sistem siap melayani pasien Anda.
             </p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/patients/add")}
-              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-colors hover:border-blue-600 hover:text-blue-600"
-            >
-              <Icons.UserPlus className="w-4 h-4" /> Add Patient
-            </button>
-            <button
-              onClick={() => navigate("/appointments/add")}
-              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-colors hover:bg-blue-700 shadow-sm"
-            >
-              <Icons.Plus className="w-4 h-4" /> New Appointment
-            </button>
-          </div>
-        </div>
-
-        {/* ── KPI Row ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-          <KpiCard icon={Icons.Calendar} value="1,050" label="Total Appointments" delta={8} iconBgClass="bg-blue-50" iconColorClass="text-blue-600" />
-          <KpiCard icon={Icons.Check} value="985" label="Treatments Done" delta={12} iconBgClass="bg-emerald-50" iconColorClass="text-emerald-600" />
-          <KpiCard icon={Icons.X} value="65" label="Cancelled" delta={-3} iconBgClass="bg-rose-50" iconColorClass="text-rose-600" />
-          <KpiCard icon={Icons.Trend} value="Rp 130.1M" label="Total Revenue" delta={18} iconBgClass="bg-indigo-50" iconColorClass="text-indigo-600" />
-        </div>
-
-        {/* ── Charts + Top Services ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
-          {/* AREA CHART: Revenue Trends */}
-          <Card className="lg:col-span-1">
-            <CardHeader
-              title="Revenue Trends"
-              action={<span className="text-[11px] font-semibold text-blue-600 tracking-wider uppercase">Jan – Jun 2025</span>}
-            />
-            <div className="p-5 pb-4">
-              <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 11 }} />
-                  <Tooltip content={<CustomTooltip prefix="Rp " />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#2563eb" 
-                    strokeWidth={3} 
-                    fillOpacity={1} 
-                    fill="url(#colorRevenue)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+          <div className="flex flex-wrap gap-3.5 bg-slate-900/25 border border-white/15 p-4 rounded-2xl backdrop-blur-md">
+            <div className="text-center px-4">
+              <span className="block text-xl font-black text-white">{appointmentsToday}</span>
+              <span className="text-[9px] uppercase tracking-wider text-blue-250 font-bold">Reservasi</span>
             </div>
-          </Card>
-
-          {/* COMPOSED CHART: Patient Visits */}
-          <Card className="lg:col-span-1">
-            <CardHeader
-              title="Patient Visits"
-              action={<span className="text-[11px] font-semibold text-slate-500 tracking-wider uppercase">Monthly</span>}
-            />
-            <div className="p-5 pb-4">
-              <ResponsiveContainer width="100%" height={240}>
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 11 }} />
-                  <Tooltip cursor={{ fill: "#f1f5f9", opacity: 0.5 }} content={<CustomTooltip />} />
-                  <Bar dataKey="patients" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={28} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="patients" 
-                    stroke="#012d94" 
-                    strokeWidth={3} 
-                    dot={{ r: 4, fill: "#fff", stroke: "##012d94", strokeWidth: 2 }} 
-                    activeDot={{ r: 6, fill: "#000000" }} 
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+            <div className="w-px bg-white/20 self-stretch" />
+            <div className="text-center px-4">
+              <span className="block text-xl font-black text-white">{activeDoctors}</span>
+              <span className="text-[9px] uppercase tracking-wider text-blue-250 font-bold">Dokter</span>
             </div>
-          </Card>
-
-          {/* Top Services (Tetap menggunakan UI Progress Bar khusus) */}
-          <Card className="lg:col-span-1">
-            <CardHeader
-              title="Top Services"
-              action={<button className="text-[12.5px] font-semibold text-blue-600 hover:underline">View All</button>}
-            />
-            <div className="p-6">
-              <div className="space-y-4">
-                {topServices.map((p, i) => (
-                  <div key={p.id} className="group">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-[11px] font-bold text-slate-400 w-4 text-center">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-slate-900 truncate">{p.name}</p>
-                        <p className="text-[11px] text-slate-500">{p.price} · {p.patients} patients</p>
-                      </div>
-                    </div>
-                    <div className="ml-7 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                          i === 0 ? "bg-blue-600" : i === 1 ? "bg-blue-400" : "bg-slate-300"
-                        }`}
-                        style={{ width: `${p.pct}%` }} 
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Insight Alert */}
-              <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-100">
-                <p className="text-[12px] font-bold text-blue-900 mb-1">Clinic Insight</p>
-                <p className="text-[11.5px] text-blue-800 leading-relaxed">
-                  Teeth Whitening requests are up <strong className="text-blue-600">24%</strong> this month. Ensure sufficient stock of bleaching materials!
-                </p>
-              </div>
+            <div className="w-px bg-white/20 self-stretch" />
+            <div className="text-center px-4">
+              <span className="block text-xl font-black text-emerald-400">Rp {(revenueToday/1000).toFixed(0)}K</span>
+              <span className="text-[9px] uppercase tracking-wider text-blue-250 font-bold">Revenue</span>
             </div>
-          </Card>
+          </div>
+        </div>
+      </div>
 
+      {/* Overview Grid Section (Using the new StatsCard component) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* CRM Overview */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+              <span>💎</span> Hubungan Pelanggan (CRM)
+            </h3>
+            <Badge variant="info" className="text-[9px]">Customer Metrics</Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <StatsCard title="Total Pasien" value={`${totalPatients} Pasien`} description="Database Klinik" icon={HiOutlineUsers} />
+            <StatsCard title="Pasien Baru" value={`+${newPatientsCount} Orang`} description="Bulan ini" trend={15} icon={HiOutlineUserGroup} />
+            <StatsCard title="Member Aktif" value={`${activeMembers} Loyal`} description="Bronze - Platinum" icon={HiOutlineBadgeCheck} />
+            <StatsCard title="Satisfaction NPS" value="4.8 / 5.0" description="Ulasan Bintang 5" icon={HiOutlineChatAlt} />
+          </div>
         </div>
 
-        {/* ── Recent Appointments Table ── */}
-        <Card>
-          <CardHeader
-            title="Recent Appointments"
-            action={<button className="text-[12.5px] font-semibold text-blue-600 hover:underline">View Schedule</button>}
-          />
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="px-6 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">Apt ID</th>
-                  <th className="px-6 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">Patient Name</th>
-                  <th className="px-6 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">Treatment</th>
-                  <th className="px-6 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-right">Total Est.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentAppointments.map((o) => (
-                  <tr key={o.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80 transition-colors cursor-pointer group">
-                    <td className="px-6 py-4 text-[13px] font-bold text-blue-600">{o.id}</td>
-                    <td className="px-6 py-4 text-[13.5px] font-semibold text-slate-900">{o.patient}</td>
-                    <td className="px-6 py-4 text-[13px] text-slate-600">{o.treatment}</td>
-                    <td className="px-6 py-4"><StatusBadge status={o.status} /></td>
-                    <td className="px-6 py-4 text-[13.5px] font-bold text-slate-800 text-right">{o.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Operasional Overview */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+              <span>🩺</span> Operasional Harian
+            </h3>
+            <Badge variant="success" className="text-[9px]">Live Activity</Badge>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <StatsCard title="Appointment Hari Ini" value={`${appointmentsToday} Antrean`} description="Menunggu panggilan" icon={HiOutlineCalendar} />
+            <StatsCard title="Dokter On-Duty" value={`${activeDoctors} Dokter`} description="Spesialis bertugas" icon={HiOutlineUser} />
+            <StatsCard title="Revenue Hari Ini" value={`Rp ${revenueToday.toLocaleString("id-ID")}`} description="Pencatatan kasir" icon={HiOutlineCash} />
+            <StatsCard title="Treatment Selesai" value={`${treatmentsTodayCount} Tindakan`} description="Scaling & Cabut" icon={HiOutlinePlus} />
+          </div>
+        </div>
+
+      </div>
+
+      {/* Unique Middle Row (Using StatBar and Timeline components) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Card: Dokter Shift Load Status */}
+        <Card className="rounded-[20px] border border-slate-200/60 lg:col-span-1 shadow-sm">
+          <CardHeader className="border-b border-slate-50 p-4">
+            <CardTitle className="text-xs uppercase tracking-wider font-extrabold text-slate-800">Beban Shift Dokter Hari Ini</CardTitle>
+            <CardDescription className="text-[10px]">Persentase kesibukan slot dokter bertugas.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4.5">
+            {doctors.map((d, index) => {
+              const percentages = index === 0 ? 80 : index === 1 ? 40 : 25;
+              const color = index === 0 ? "bg-red-500" : index === 1 ? "bg-blue-500" : "bg-slate-400";
+              return (
+                <StatBar 
+                  key={d.id} 
+                  label={d.name} 
+                  value={`${percentages}% slot`} 
+                  percentage={percentages} 
+                  colorClass={color} 
+                />
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Card: Admin Tasks Checklist */}
+        <Card className="rounded-[20px] border border-slate-200/60 lg:col-span-1 shadow-sm">
+          <CardHeader className="border-b border-slate-50 p-4">
+            <CardTitle className="text-xs uppercase tracking-wider font-extrabold text-slate-800">Checklist Pekerjaan Klinik</CardTitle>
+            <CardDescription className="text-[10px]">Tugas harian operator SmileDental.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ScrollArea maxHeight="180px" className="space-y-2.5">
+              {tasks.map(t => (
+                <div 
+                  key={t.id} 
+                  onClick={() => toggleTask(t.id)}
+                  className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors text-xs font-semibold text-slate-600"
+                >
+                  <HiOutlineCheckCircle className={`text-lg shrink-0 transition-colors ${
+                    t.done ? "text-emerald-500 fill-emerald-50" : "text-slate-300"
+                  }`} />
+                  <span className={`truncate ${t.done ? "line-through text-slate-400" : "text-slate-700"}`}>
+                    {t.text}
+                  </span>
+                </div>
+              ))}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Card: Real-time Patient Activity Feed */}
+        <Card className="rounded-[20px] border border-slate-200/60 lg:col-span-1 shadow-sm">
+          <CardHeader className="border-b border-slate-50 p-4">
+            <CardTitle className="text-xs uppercase tracking-wider font-extrabold text-slate-800">Aktivitas Terkini CRM</CardTitle>
+            <CardDescription className="text-[10px]">Aktivitas live pasien SmileDental.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ScrollArea maxHeight="180px">
+              <Timeline>
+                {activities.map((a, idx) => (
+                  <TimelineItem 
+                    key={a.id}
+                    title={a.patientName}
+                    time={a.time}
+                    description={`${a.action} - ${a.detail}`}
+                    isActive={idx === 0}
+                  />
+                ))}
+              </Timeline>
+            </ScrollArea>
+          </CardContent>
         </Card>
 
       </div>
+
+      {/* Financial Charts Area */}
+      <Card className="rounded-[24px] border border-slate-200/60 shadow-sm">
+        <CardHeader className="border-b border-slate-50 p-5 flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <div>
+            <CardTitle>Analisis Keuangan & Kunjungan Pasien</CardTitle>
+            <CardDescription>Grafik tren pendapatan kotor mingguan vs total pasien bulanan.</CardDescription>
+          </div>
+          <Badge variant="default" className="w-fit text-[9px]">Januari - Juni 2026</Badge>
+        </CardHeader>
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Revenue Trends */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider px-1">Tren Pendapatan Bulanan (IDR)</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip formatter={(value) => `Rp ${value.toLocaleString("id-ID")}`} />
+                <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fill="url(#colorRev)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Composed Patients Visits */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider px-1">Statistik Kunjungan Pasien</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <ComposedChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Bar dataKey="patients" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={20} />
+                <Line type="monotone" dataKey="patients" stroke="#4f46e5" strokeWidth={2} dot={{ r: 3, fill: "#fff", stroke: "#4f46e5", strokeWidth: 1.5 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </Card>
+
     </div>
   );
 }

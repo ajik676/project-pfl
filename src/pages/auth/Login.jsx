@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { supabase } from "../../data/supabaseClient";
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [dataForm, setDataForm] = useState({
-    email: "emilys",
-    password: "emilyspass",
+    email: "",
+    password: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -24,15 +24,67 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await axios.post(
-        "https://dummyjson.com/user/login",
-        { username: dataForm.email, password: dataForm.password },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      localStorage.setItem("user", JSON.stringify(response.data));
+      let emailToAuth = dataForm.email.trim();
+
+      // Lookup email by username if input is not an email
+      if (!emailToAuth.includes("@")) {
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("username", emailToAuth)
+          .maybeSingle();
+
+        if (profileErr) {
+          throw new Error("Gagal memproses username: " + profileErr.message);
+        }
+
+        if (profile && profile.email) {
+          emailToAuth = profile.email;
+        } else {
+          throw new Error("Username atau Email tidak ditemukan.");
+        }
+      }
+
+      // Login to Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: emailToAuth,
+        password: dataForm.password,
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      // Fetch user profile from profiles table
+      const { data: userProfile, error: profileFetchErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileFetchErr) {
+        throw new Error("Gagal mengambil data profil: " + profileFetchErr.message);
+      }
+
+      const sessionUser = {
+        id: data.user.id,
+        email: data.user.email,
+        name: userProfile?.name || data.user.user_metadata?.name || "Staff",
+        username: userProfile?.username || data.user.user_metadata?.username || data.user.email.split("@")[0],
+        role: userProfile?.role || data.user.user_metadata?.role || "Staff",
+        permissions: userProfile?.permissions || ["READ_PATIENTS", "READ_TRANSACTIONS"],
+        status: userProfile?.status || "Aktif",
+      };
+
+      if (sessionUser.status !== "Aktif") {
+        await supabase.auth.signOut();
+        throw new Error("Akun Anda telah dinonaktifkan. Silakan hubungi admin.");
+      }
+
+      localStorage.setItem("user", JSON.stringify(sessionUser));
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Username atau password salah");
+      setError(err.message || "Username/Email atau kata sandi salah");
     } finally {
       setLoading(false);
     }

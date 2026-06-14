@@ -1,16 +1,49 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../../data/supabaseClient";
 
 export default function Forgot() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin + "/login", // Redirect back to login after resetting
+      });
+
+      if (resetError) {
+        throw resetError;
+      }
+
+      setSuccess("Tautan reset kata sandi telah dikirim! Silakan periksa kotak masuk email Anda.");
+      setEmail("");
+    } catch (err) {
+      setError(err.message || "Gagal mengirimkan tautan reset kata sandi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
-
       {/* Header */}
       <div>
         <div
           className="flex items-center gap-2 mb-3"
           style={{
-            fontSize: "0.72rem", fontWeight: 500,
-            letterSpacing: "0.12em", textTransform: "uppercase", color: "#1769b0",
+            fontSize: "0.72rem",
+            fontWeight: 500,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#1769b0",
           }}
         >
           <span style={{ display: "inline-block", width: 18, height: 1.5, background: "#1769b0" }} />
@@ -18,8 +51,12 @@ export default function Forgot() {
         </div>
         <h2
           style={{
-            fontFamily: "'Fraunces', serif", fontSize: "2.2rem",
-            fontWeight: 300, color: "#0a2540", lineHeight: 1.15, letterSpacing: "-0.02em",
+            fontFamily: "'Fraunces', serif",
+            fontSize: "2.2rem",
+            fontWeight: 300,
+            color: "#0a2540",
+            lineHeight: 1.15,
+            letterSpacing: "-0.02em",
           }}
         >
           Lupa kata<br />
@@ -36,7 +73,10 @@ export default function Forgot() {
         style={{ background: "#e8f2fc", border: "1.5px solid #bdd8f5" }}
       >
         <svg
-          viewBox="0 0 24 24" fill="none" stroke="#1769b0" strokeWidth="1.8"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#1769b0"
+          strokeWidth="1.8"
           style={{ width: 18, height: 18, flexShrink: 0, marginTop: 1 }}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -46,9 +86,33 @@ export default function Forgot() {
         </p>
       </div>
 
-      {/* Form */}
-      <form className="space-y-5" onSubmit={e => e.preventDefault()}>
+      {/* Status Messages */}
+      {error && (
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm"
+          style={{ background: "#fff0f0", border: "1.5px solid #fcc", color: "#c0392b" }}
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 16, height: 16, flexShrink: 0 }}>
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          {error}
+        </div>
+      )}
 
+      {success && (
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm"
+          style={{ background: "#eefbf7", border: "1.5px solid #ccefe6", color: "#27ae60" }}
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 16, height: 16, flexShrink: 0 }}>
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          {success}
+        </div>
+      )}
+
+      {/* Form */}
+      <form className="space-y-5" onSubmit={handleSubmit}>
         {/* Email */}
         <div>
           <label
@@ -63,6 +127,8 @@ export default function Forgot() {
               type="email"
               id="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="nama@klinik.com"
               className="appearance-none block w-full rounded-xl text-sm transition-all duration-200"
               style={{
@@ -85,7 +151,10 @@ export default function Forgot() {
               }}
             />
             <svg
-              viewBox="0 0 24 24" fill="none" stroke="#b0c4d8" strokeWidth="1.8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#b0c4d8"
+              strokeWidth="1.8"
               style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, pointerEvents: "none" }}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -97,7 +166,8 @@ export default function Forgot() {
         <div className="pt-1">
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 rounded-xl text-white transition-all duration-200 active:scale-[0.99]"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 rounded-xl text-white transition-all duration-200 active:scale-[0.99] disabled:opacity-50"
             style={{
               padding: "13px",
               background: "#1769b0",
@@ -108,13 +178,13 @@ export default function Forgot() {
               fontWeight: 500,
               boxShadow: "0 4px 16px rgba(23,105,176,0.3)",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#1258a0"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#1769b0"; }}
+            onMouseEnter={e => { if(!loading) e.currentTarget.style.background = "#1258a0"; }}
+            onMouseLeave={e => { if(!loading) e.currentTarget.style.background = "#1769b0"; }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ width: 17, height: 17 }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            Kirim Tautan Reset
+            {loading ? "Mengirim..." : "Kirim Tautan Reset"}
           </button>
         </div>
       </form>
@@ -129,8 +199,9 @@ export default function Forgot() {
       {/* Back to Login */}
       <Link
         to="/login"
-        className="w-full flex items-center justify-center gap-2 rounded-xl transition-all duration-200"
+        className="w-full flex items-center justify-center gap-2 rounded-xl transition-all duration-200 text-center"
         style={{
+          display: "flex",
           padding: "12px",
           border: "1.5px solid #dce8f5",
           background: "#f8fbff",
@@ -149,12 +220,8 @@ export default function Forgot() {
           e.currentTarget.style.background = "#f8fbff";
         }}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="#1769b0" strokeWidth="2" style={{ width: 16, height: 16 }}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Kembali ke halaman masuk
+        Kembali ke Login
       </Link>
-
     </div>
   );
 }

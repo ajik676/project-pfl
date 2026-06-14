@@ -35,6 +35,15 @@ const DentalRecordDetail = lazy(() => import("./pages/DentalRecordDetail"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const NotificationDetail = lazy(() => import("./pages/NotificationDetail"));
 
+// NEW CATEGORIZED PAGES BASED ON CRM.MD
+const LoyaltyRewards = lazy(() => import("./pages/LoyaltyRewards"));
+const CustomerActivities = lazy(() => import("./pages/CustomerActivities"));
+const FeedbackReviews = lazy(() => import("./pages/FeedbackReviews"));
+const Doctors = lazy(() => import("./pages/Doctors"));
+const Treatments = lazy(() => import("./pages/Treatments"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Settings = lazy(() => import("./pages/Settings"));
+
 const ErrorPage = lazy(() => import("./pages/ErrorPage"));
 
 /* Auth */
@@ -101,6 +110,15 @@ function App() {
           {/* NOTIFICATIONS */}
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/notifications/:id" element={<NotificationDetail />} />
+
+          {/* NEW CRM AND OPERATIONAL PAGES */}
+          <Route path="/loyalty-rewards" element={<LoyaltyRewards />} />
+          <Route path="/customer-activities" element={<CustomerActivities />} />
+          <Route path="/feedback-reviews" element={<FeedbackReviews />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/treatments" element={<Treatments />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/settings" element={<Settings />} />
 
           {/* ERROR */}
           <Route path="/400" element={<ErrorPage code="400" />} />
