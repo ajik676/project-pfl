@@ -46,6 +46,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 
 const Landing = lazy(() => import("./pages/Landing"));
 const ErrorPage = lazy(() => import("./pages/ErrorPage"));
+const MemberDashboard = lazy(() => import("./pages/MemberDashboard"));
 
 /* Auth */
 const Login = lazy(() => import("./pages/auth/Login"));
@@ -56,10 +57,29 @@ const Forgot = lazy(() => import("./pages/auth/Forgot"));
 const MainLayout = lazy(() => import("./layouts/MainLayout"));
 const AuthLayout = lazy(() => import("./layouts/AuthLayout"));
 
-/* Protected Route */
-const ProtectedRoute = ({ children }) => {
-  const user = localStorage.getItem("user");
-  return user ? children : <Navigate to="/login" replace />;
+/* Protected Route with Role Guard */
+const ProtectedRoute = ({ children, roleType = "staff" }) => {
+  const userStr = localStorage.getItem("user");
+  if (!userStr) return <Navigate to="/login" replace />;
+
+  const user = JSON.parse(userStr);
+
+  // If role is Member, they can only access member portal
+  if (roleType === "member" && user.role === "Member") {
+    return children;
+  }
+
+  // If role is Staff (or doctor), they can only access admin dashboard
+  if (roleType === "staff" && user.role !== "Member") {
+    return children;
+  }
+
+  // Mismatch redirect
+  if (user.role === "Member") {
+    return <Navigate to="/member" replace />;
+  } else {
+    return <Navigate to="/dashboard" replace />;
+  }
 };
 
 function App() {
@@ -77,10 +97,20 @@ function App() {
           <Route path="/forgot" element={<Forgot />} />
         </Route>
 
-        {/* MAIN */}
+        {/* MEMBER PORTAL */}
+        <Route
+          path="/member"
+          element={
+            <ProtectedRoute roleType="member">
+              <MemberDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* MAIN STAFF/ADMIN */}
         <Route
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roleType="staff">
               <MainLayout />
             </ProtectedRoute>
           }

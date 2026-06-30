@@ -69,10 +69,10 @@ export default function Login() {
       const sessionUser = {
         id: data.user.id,
         email: data.user.email,
-        name: userProfile?.name || data.user.user_metadata?.name || "Staff",
+        name: userProfile?.name || data.user.user_metadata?.name || "Pengguna",
         username: userProfile?.username || data.user.user_metadata?.username || data.user.email.split("@")[0],
-        role: userProfile?.role || data.user.user_metadata?.role || "Staff",
-        permissions: userProfile?.permissions || ["READ_PATIENTS", "READ_TRANSACTIONS"],
+        role: userProfile?.role || data.user.user_metadata?.role || "Member",
+        permissions: userProfile?.permissions || ["READ_PATIENTS"],
         status: userProfile?.status || "Aktif",
       };
 
@@ -82,7 +82,12 @@ export default function Login() {
       }
 
       localStorage.setItem("user", JSON.stringify(sessionUser));
-      navigate("/dashboard");
+      
+      if (sessionUser.role === "Member") {
+        navigate("/member");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(err.message || "Username/Email atau kata sandi salah");
     } finally {

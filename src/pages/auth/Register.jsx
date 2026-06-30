@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../data/supabaseClient";
+import { db } from "../../data/db";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -9,6 +10,8 @@ export default function Register() {
     name: "",
     username: "",
     email: "",
+    phone: "",
+    role: "Member", // Default role
     password: "",
     confirmPassword: "",
   });
@@ -28,7 +31,7 @@ export default function Register() {
     setError("");
     setSuccess("");
 
-    const { name, username, email, password, confirmPassword } = dataForm;
+    const { name, username, email, phone, role, password, confirmPassword } = dataForm;
 
     // Validation
     if (password !== confirmPassword) {
@@ -70,7 +73,7 @@ export default function Register() {
           data: {
             name: name.trim(),
             username: cleanUsername,
-            role: "Staff", // Default role
+            role: role,
           },
         },
       });
@@ -79,11 +82,62 @@ export default function Register() {
         throw signUpError;
       }
 
+      // If registered as a Member, sync to our local database (db.js)
+      if (role === "Member") {
+        const patients = db.getPatients();
+        const existingPatient = patients.find(p => p.email === email.trim() || p.phone === phone.trim());
+        
+        if (!existingPatient) {
+          const nextId = "PT-" + String(patients.length + 1).padStart(3, "0");
+          const newPatient = {
+            id: nextId,
+            name: name.trim(),
+            gender: "Laki-laki", // Default placeholder
+            age: 25,
+            phone: phone.trim() || "08123456789",
+            email: email.trim(),
+            address: "Jl. Pendaftaran Online",
+            city: "Jakarta",
+            registeredDate: new Date().toISOString().split("T")[0],
+            membershipStatus: "Aktif",
+            membershipLevel: "Bronze",
+            complaint: "Pendaftaran Online",
+            status: "Aktif",
+            adminNotes: "Registrasi online melalui portal member.",
+            history: [],
+            complaints: [],
+            feedbacks: []
+          };
+          db.savePatient(newPatient);
+
+          // Seed welcome points: 150 points for signing up
+          const loyalty = db.getLoyaltyRewards();
+          loyalty.points.push({
+            patientId: nextId,
+            patientName: name.trim(),
+            balance: 150,
+            tier: "Bronze"
+          });
+          db.saveLoyaltyRewards(loyalty);
+
+          // Save activity
+          db.saveCustomerActivity({
+            id: "ACT-" + String(db.getCustomerActivities().length + 1).padStart(3, "0"),
+            patientName: name.trim(),
+            action: "Pendaftaran Member",
+            detail: "Mendaftar mandiri via portal dan mendapatkan bonus awal 150 Poin",
+            time: new Date().toISOString()
+          });
+        }
+      }
+
       setSuccess("Pendaftaran berhasil! Anda akan segera diarahkan ke halaman login.");
       setDataForm({
         name: "",
         username: "",
         email: "",
+        phone: "",
+        role: "Member",
         password: "",
         confirmPassword: "",
       });
@@ -104,22 +158,22 @@ export default function Register() {
       {/* Badge */}
       <div
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest"
-        style={{ background: "#d6f0ea", color: "#3dba9e" }}
+        style={{ background: "#d6f0ea", color: "#00B074" }}
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
-        Klinik Gigi Terpercaya
+        SmileDental CRM
       </div>
 
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight" style={{ color: "#0d3557" }}>
           Daftar{" "}
-          <span className="italic" style={{ color: "#2a8fd4" }}>Sekarang</span>
+          <span className="italic" style={{ color: "#3b82f6" }}>Sekarang</span>
         </h2>
         <p className="mt-2 text-sm" style={{ color: "#7a93a8" }}>
-          Buat akun untuk jadwalkan konsultasi & pantau kesehatan gigi Anda.
+          Pilih peran Anda dan buat akun untuk mengakses platform.
         </p>
       </div>
 
@@ -153,6 +207,38 @@ export default function Register() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        
+        {/* Role Selector Tabs */}
+        <div>
+          <label className="block text-xs font-semibold mb-2" style={{ color: "#3d5c73" }}>
+            Peran Pendaftaran
+          </label>
+          <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setDataForm({ ...dataForm, role: "Member" })}
+              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                dataForm.role === "Member"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Pasien (Member)
+            </button>
+            <button
+              type="button"
+              onClick={() => setDataForm({ ...dataForm, role: "Staff" })}
+              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                dataForm.role === "Staff"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Staf Klinik (Staff)
+            </button>
+          </div>
+        </div>
+
         {/* Full Name */}
         <div>
           <label className="block text-xs font-semibold mb-1" style={{ color: "#3d5c73" }}>
@@ -197,7 +283,7 @@ export default function Register() {
               value={dataForm.username}
               onChange={handleChange}
               required
-              placeholder="Contoh: staff_lisa"
+              placeholder="Contoh: andi_member"
               className="appearance-none block w-full pl-10 pr-4 py-3 border rounded-xl text-sm transition-all duration-200"
               style={{ borderColor: "#c8d6e3", background: "#f5f8fc", color: "#0d3557", outline: "none" }}
               onFocus={e => {
@@ -215,6 +301,38 @@ export default function Register() {
           </div>
         </div>
 
+        {/* Phone Number */}
+        <div>
+          <label className="block text-xs font-semibold mb-1" style={{ color: "#3d5c73" }}>
+            Nomor Telepon
+          </label>
+          <div className="relative">
+            <input
+              type="tel"
+              name="phone"
+              value={dataForm.phone}
+              onChange={handleChange}
+              required
+              placeholder="Contoh: 08123456789"
+              className="appearance-none block w-full pl-10 pr-4 py-3 border rounded-xl text-sm transition-all duration-200"
+              style={{ borderColor: "#c8d6e3", background: "#f5f8fc", color: "#0d3557", outline: "none" }}
+              onFocus={e => {
+                e.target.style.borderColor = "#2a8fd4";
+                e.target.style.background = "#fff";
+                e.target.style.boxShadow = "0 0 0 3px rgba(42,143,212,0.12)";
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = "#c8d6e3";
+                e.target.style.background = "#f5f8fc";
+                e.target.style.boxShadow = "none";
+              }}
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="#c8d6e3" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+          </div>
+        </div>
+
         {/* Email */}
         <div>
           <label className="block text-xs font-semibold mb-1" style={{ color: "#3d5c73" }}>
@@ -227,7 +345,7 @@ export default function Register() {
               value={dataForm.email}
               onChange={handleChange}
               required
-              placeholder="dokter@contoh.com"
+              placeholder="nama@email.com"
               className="appearance-none block w-full pl-10 pr-4 py-3 border rounded-xl text-sm transition-all duration-200"
               style={{ borderColor: "#c8d6e3", background: "#f5f8fc", color: "#0d3557", outline: "none" }}
               onFocus={e => {
@@ -318,8 +436,8 @@ export default function Register() {
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white transition-all duration-200 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             style={{
-              background: "linear-gradient(135deg, #2a8fd4, #1a6faa)",
-              boxShadow: "0 4px 16px rgba(42,143,212,0.35)",
+              background: "linear-gradient(135deg, #00B074, #1a6faa)",
+              boxShadow: "0 4px 16px rgba(0, 176, 116, 0.25)",
             }}
           >
             {loading ? "Mendaftar..." : "Daftar Sekarang"}
@@ -330,7 +448,7 @@ export default function Register() {
       {/* Footer */}
       <div className="text-center text-sm" style={{ color: "#7a93a8" }}>
         Sudah punya akun?{" "}
-        <Link to="/login" className="font-semibold transition-colors" style={{ color: "#2a8fd4" }}>
+        <Link to="/login" className="font-semibold transition-colors" style={{ color: "#00B074" }}>
           Masuk di sini
         </Link>
       </div>
